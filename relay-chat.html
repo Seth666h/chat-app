@@ -1,0 +1,1627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Relay</title>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:            #0a0b0e;
+  --surface-1:     #101216;
+  --surface-2:     #16181d;
+  --surface-3:     #1d2027;
+  --surface-4:     #252932;
+
+  --border:        #1c1f26;
+  --border-2:      #2a2f3a;
+  --border-3:      #363c48;
+
+  --text:          #e8eaee;
+  --text-2:        #969ba6;
+  --text-3:        #5c636f;
+
+  --accent:        #5c6cf5;
+  --accent-2:      #6d7cf7;
+  --accent-soft:   rgba(92, 108, 245, 0.14);
+
+  --ok:            #22c55e;
+  --warn:          #f59e0b;
+  --err:           #ef4444;
+
+  --r-sm: 8px;  --r-md: 10px;  --r-lg: 14px;  --r-xl: 18px;
+  --ease: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-2: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+html, body { height: 100%; }
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow: hidden;
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+}
+
+button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; }
+input, textarea { font: inherit; color: inherit; background: none; border: none; outline: none; }
+::selection { background: var(--accent-soft); color: var(--text); }
+svg { display: block; flex: 0 0 auto; }
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #232830; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #2f3540; }
+
+/* ============================================================
+   Shell
+   ============================================================ */
+.app { display: flex; height: 100dvh; overflow: hidden; }
+
+/* ============================================================
+   Sidebar
+   ============================================================ */
+.sidebar {
+  width: 340px;
+  flex: 0 0 340px;
+  background: var(--surface-1);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* --- Identity --- */
+.identity { padding: 18px 16px 14px; }
+
+.identity-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.avatar {
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  font-size: 13px; font-weight: 600;
+  color: #fff;
+  flex: 0 0 auto;
+  user-select: none;
+  background: linear-gradient(135deg, #5c6cf5, #8b5cf6);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08);
+}
+.avatar--lg { width: 42px; height: 42px; font-size: 15px; }
+
+.identity-info { min-width: 0; flex: 1; }
+
+.identity-name {
+  font-size: 14px; font-weight: 600;
+  letter-spacing: -0.01em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  line-height: 1.3;
+}
+
+.identity-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--text-3);
+  line-height: 1.3;
+  margin-top: 1px;
+}
+
+/* ID card */
+.id-card {
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: border-color 0.15s var(--ease-2), background 0.15s var(--ease-2);
+}
+.id-card:hover { border-color: var(--border-2); background: var(--surface-3); }
+.id-card:active { transform: scale(0.995); }
+
+.id-card-label {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-3);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  line-height: 1;
+  margin-bottom: 3px;
+}
+.id-card-value {
+  font-size: 12.5px;
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  letter-spacing: 0.02em;
+  color: var(--text);
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.id-card-copy {
+  width: 28px; height: 28px;
+  border-radius: 7px;
+  display: grid; place-items: center;
+  background: transparent;
+  color: var(--text-3);
+  flex: 0 0 auto;
+  transition: background 0.15s, color 0.15s;
+}
+.id-card-copy:hover { background: var(--surface-4); color: var(--text); }
+.id-card-copy svg { width: 14px; height: 14px; }
+
+/* Status dot */
+.dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--text-3);
+  flex: 0 0 auto;
+  transition: background 0.2s;
+}
+.dot.ok    { background: var(--ok);    box-shadow: 0 0 0 3px rgba(34,197,94,0.15); }
+.dot.warn  { background: var(--warn);  box-shadow: 0 0 0 3px rgba(245,158,11,0.15); }
+.dot.err   { background: var(--err);   box-shadow: 0 0 0 3px rgba(239,68,68,0.15); }
+
+/* Tools */
+.tools { display: flex; gap: 8px; padding: 0 14px 12px; }
+
+.search {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  transition: border-color 0.15s var(--ease-2), background 0.15s var(--ease-2);
+  min-width: 0;
+}
+.search:focus-within { border-color: var(--border-3); background: var(--surface-3); }
+.search svg { width: 15px; height: 15px; color: var(--text-3); }
+.search input { flex: 1; min-width: 0; font-size: 13px; line-height: 1; }
+.search input::placeholder { color: var(--text-3); }
+
+.icon-btn {
+  width: 36px; height: 36px;
+  border-radius: var(--r-md);
+  display: grid; place-items: center;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text-2);
+  flex: 0 0 auto;
+  transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.1s;
+}
+.icon-btn:hover { background: var(--surface-3); border-color: var(--border-2); color: var(--text); }
+.icon-btn:active { transform: scale(0.95); }
+.icon-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.icon-btn:disabled:hover { background: var(--surface-2); border-color: var(--border); color: var(--text-2); }
+.icon-btn svg { width: 16px; height: 16px; }
+
+.icon-btn--accent { background: var(--accent); border-color: transparent; color: #fff; }
+.icon-btn--accent:hover { background: var(--accent-2); border-color: transparent; }
+
+/* Friend list */
+.friend-list { flex: 1; overflow-y: auto; padding: 0 8px 12px; list-style: none; }
+
+.friend {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 10px;
+  border-radius: var(--r-md);
+  cursor: pointer;
+  transition: background 0.12s var(--ease-2);
+}
+.friend:hover { background: var(--surface-2); }
+.friend.active { background: var(--surface-3); }
+
+.friend-avatar {
+  position: relative;
+  flex: 0 0 auto;
+}
+.friend-avatar .presence {
+  position: absolute;
+  bottom: -1px; right: -1px;
+  width: 11px; height: 11px;
+  border-radius: 50%;
+  background: var(--surface-1);
+  display: grid; place-items: center;
+}
+.friend-avatar .presence::after {
+  content: '';
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--text-3);
+  transition: background 0.2s;
+}
+.friend-avatar .presence.online::after { background: var(--ok); }
+
+.friend-body { min-width: 0; flex: 1; }
+
+.friend-name {
+  font-size: 13.5px; font-weight: 500;
+  letter-spacing: -0.005em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  line-height: 1.3;
+}
+
+.friend-preview {
+  font-size: 12px;
+  color: var(--text-3);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  line-height: 1.4;
+  margin-top: 1px;
+}
+
+.friend-time {
+  font-size: 11px;
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+  flex: 0 0 auto;
+}
+
+.list-empty {
+  padding: 32px 20px;
+  text-align: center;
+  color: var(--text-3);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.list-empty strong { color: var(--text-2); font-weight: 500; display: block; margin-bottom: 4px; }
+
+/* ============================================================
+   Chat panel
+   ============================================================ */
+.chat { flex: 1; display: flex; flex-direction: column; min-width: 0; background: var(--bg); }
+
+.chat-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-1);
+  min-height: 65px;
+}
+
+.chat-back {
+  display: none;
+  color: var(--text-2);
+  width: 32px; height: 32px;
+  border-radius: var(--r-sm);
+  margin-left: -8px;
+  place-items: center;
+}
+.chat-back:hover { background: var(--surface-3); color: var(--text); }
+.chat-back svg { width: 18px; height: 18px; }
+
+.chat-head-info { min-width: 0; flex: 1; }
+
+.chat-head-name {
+  font-size: 14.5px; font-weight: 600;
+  letter-spacing: -0.01em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  line-height: 1.3;
+}
+.chat-head-status {
+  font-size: 11.5px;
+  color: var(--text-3);
+  line-height: 1.3;
+  margin-top: 1px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.chat-actions { display: flex; gap: 6px; }
+
+/* Messages */
+.messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 24px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  scroll-behavior: smooth;
+}
+
+.messages-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-3);
+  font-size: 13px;
+  text-align: center;
+  padding: 24px;
+  gap: 4px;
+}
+
+.day-divider { display: flex; justify-content: center; margin: 16px 0 10px; }
+.day-divider span {
+  font-size: 11px; font-weight: 500;
+  color: var(--text-3);
+  background: var(--surface-2);
+  padding: 3px 10px;
+  border-radius: 20px;
+  letter-spacing: 0.02em;
+}
+
+.message { display: flex; margin-top: 2px; animation: msgIn 0.22s var(--ease-2); }
+.message.mine { justify-content: flex-end; }
+.message.first { margin-top: 10px; }
+
+@keyframes msgIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.bubble {
+  max-width: min(68%, 560px);
+  padding: 8px 12px 7px;
+  font-size: 13.5px;
+  line-height: 1.45;
+  word-wrap: break-word;
+  overflow-wrap: anywhere;
+  background: var(--surface-3);
+  color: var(--text);
+  border-radius: 14px;
+}
+
+.bubble.mine { background: var(--accent); color: #fff; }
+.message.first .bubble { border-top-left-radius: 14px; border-top-right-radius: 14px; }
+.message:not(.first):not(.mine) .bubble { border-top-left-radius: 6px; }
+.message:not(.first).mine .bubble { border-top-right-radius: 6px; }
+
+.bubble-time {
+  font-size: 10px;
+  opacity: 0.55;
+  margin-top: 3px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 5px;
+}
+.bubble.mine .bubble-time { color: rgba(255,255,255,0.75); }
+
+.bubble-time .fail { color: #ffb4b4; font-weight: 500; }
+
+/* Composer */
+.composer { padding: 12px 20px 18px; background: var(--surface-1); border-top: 1px solid var(--border); }
+
+.composer-field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 4px 4px 16px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  transition: border-color 0.15s var(--ease-2), background 0.15s var(--ease-2);
+}
+.composer-field:focus-within { border-color: var(--border-3); background: var(--surface-3); }
+.composer-field input { flex: 1; min-width: 0; padding: 9px 0; font-size: 14px; }
+.composer-field input::placeholder { color: var(--text-3); }
+
+.composer-send {
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  display: grid; place-items: center;
+  flex: 0 0 auto;
+  transition: background 0.15s, transform 0.1s, opacity 0.15s;
+}
+.composer-send:hover { background: var(--accent-2); }
+.composer-send:active { transform: scale(0.92); }
+.composer-send:disabled { opacity: 0.35; cursor: not-allowed; background: var(--surface-4); }
+.composer-send svg { width: 16px; height: 16px; }
+
+/* Empty state */
+.empty-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 40px;
+  gap: 10px;
+}
+
+.empty-mark {
+  width: 56px; height: 56px;
+  border-radius: 18px;
+  display: grid; place-items: center;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text-3);
+  margin-bottom: 6px;
+}
+.empty-mark svg { width: 24px; height: 24px; }
+
+.empty-title { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
+.empty-sub   { font-size: 13px; color: var(--text-3); max-width: 300px; line-height: 1.55; }
+
+/* ============================================================
+   Modals
+   ============================================================ */
+.modal {
+  position: fixed; inset: 0; z-index: 100;
+  display: grid; place-items: center;
+  padding: 20px;
+  background: rgba(6,7,10,0.7);
+  backdrop-filter: blur(10px) saturate(120%);
+  -webkit-backdrop-filter: blur(10px) saturate(120%);
+  opacity: 0; visibility: hidden;
+  transition: opacity 0.2s var(--ease-2), visibility 0.2s;
+}
+.modal.open { opacity: 1; visibility: visible; }
+
+.modal-panel {
+  width: 100%;
+  max-width: 420px;
+  max-height: 92dvh;
+  overflow-y: auto;
+  background: var(--surface-1);
+  border: 1px solid var(--border-2);
+  border-radius: var(--r-xl);
+  padding: 26px 24px 22px;
+  transform: translateY(10px) scale(0.98);
+  transition: transform 0.28s var(--ease);
+  box-shadow: 0 24px 60px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.015) inset;
+}
+.modal.open .modal-panel { transform: translateY(0) scale(1); }
+.modal-panel--wide { max-width: 520px; }
+
+.modal-title { font-size: 17px; font-weight: 600; letter-spacing: -0.015em; line-height: 1.3; }
+.modal-sub   { font-size: 13px; color: var(--text-2); line-height: 1.55; margin-top: 5px; }
+
+.field { margin-top: 16px; }
+.field:first-of-type { margin-top: 18px; }
+.field label {
+  display: block;
+  font-size: 12px; font-weight: 500;
+  color: var(--text-2);
+  margin-bottom: 6px;
+}
+.field input,
+.field textarea {
+  width: 100%;
+  padding: 10px 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  font-size: 13px;
+  line-height: 1.4;
+  transition: border-color 0.15s var(--ease-2), background 0.15s var(--ease-2);
+  resize: none;
+}
+.field input::placeholder,
+.field textarea::placeholder { color: var(--text-3); }
+.field input:focus,
+.field textarea:focus { border-color: var(--accent); background: var(--surface-3); }
+.field textarea {
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 11px; letter-spacing: 0.02em;
+  height: 76px; word-break: break-all; line-height: 1.5;
+}
+
+.btn {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%;
+  padding: 11px 16px;
+  border-radius: var(--r-md);
+  font-size: 13px; font-weight: 500;
+  letter-spacing: -0.005em;
+  transition: background 0.15s var(--ease-2), border-color 0.15s var(--ease-2),
+              color 0.15s, transform 0.1s;
+}
+.btn:active { transform: scale(0.985); }
+.btn svg { width: 15px; height: 15px; }
+.btn-primary   { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: var(--accent-2); }
+.btn-secondary { background: var(--surface-3); color: var(--text); border: 1px solid var(--border-2); }
+.btn-secondary:hover { background: var(--surface-4); border-color: var(--border-3); }
+.btn-ghost     { background: transparent; color: var(--text-2); }
+.btn-ghost:hover { background: var(--surface-2); color: var(--text); }
+.btn + .btn { margin-top: 8px; }
+
+.btn-row { display: flex; gap: 8px; margin-top: 10px; }
+.btn-row .btn { flex: 1; margin-top: 0; }
+
+/* Call stage */
+.call-stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  background: #050608;
+  border: 1px solid var(--border-2);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  margin-top: 18px;
+  display: none;
+}
+.call-stage.on { display: block; }
+.call-stage video { width: 100%; height: 100%; object-fit: cover; display: block; background: #050608; }
+.call-stage .local {
+  position: absolute; bottom: 10px; right: 10px;
+  width: 28%;
+  border-radius: var(--r-md);
+  border: 1px solid rgba(255,255,255,0.1);
+  object-fit: cover;
+  aspect-ratio: 4 / 3;
+  background: #0a0b0e;
+}
+
+.call-status {
+  font-size: 12.5px;
+  color: var(--text-2);
+  line-height: 1.5;
+  margin-top: 14px;
+  min-height: 19px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Incoming call */
+.incoming { text-align: center; padding: 8px 0; }
+.incoming-avatar {
+  width: 72px; height: 72px;
+  margin: 0 auto 14px;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  font-size: 26px; font-weight: 600;
+  color: #fff;
+  background: linear-gradient(135deg, #5c6cf5, #8b5cf6);
+  box-shadow: 0 0 0 0 rgba(92,108,245,0.4);
+  animation: ringPulse 1.6s ease-out infinite;
+}
+@keyframes ringPulse {
+  0%   { box-shadow: 0 0 0 0 rgba(92,108,245,0.45); }
+  100% { box-shadow: 0 0 0 22px rgba(92,108,245,0); }
+}
+
+/* ============================================================
+   Responsive
+   ============================================================ */
+@media (max-width: 760px) {
+  .sidebar { width: 100%; flex: 1 1 100%; }
+  .chat { display: none; flex: 1 1 100%; }
+  body.chat-open .sidebar { display: none; }
+  body.chat-open .chat { display: flex; }
+  .chat-back { display: grid; }
+  .messages { padding: 16px 16px 4px; }
+  .bubble { max-width: 82%; }
+  .composer { padding: 10px 14px 16px; }
+  .chat-header { padding: 12px 16px; min-height: 60px; }
+
+  .modal { padding: 0; align-items: flex-end; }
+  .modal-panel {
+    max-width: 100%;
+    border-radius: 22px 22px 0 0;
+    transform: translateY(24px);
+    max-height: 92dvh;
+  }
+  .modal.open .modal-panel { transform: translateY(0); }
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ========================= Sidebar ========================= -->
+  <aside class="sidebar" id="sidebar">
+
+    <div class="identity">
+      <div class="identity-top">
+        <div class="avatar avatar--lg" id="meAvatar">—</div>
+        <div class="identity-info">
+          <div class="identity-name" id="meName">—</div>
+          <div class="identity-status">
+            <span class="dot" id="meDot"></span>
+            <span id="meStatusText">Connecting…</span>
+          </div>
+        </div>
+      </div>
+
+      <button class="id-card" id="idCard" type="button" title="Copy your ID">
+        <div style="min-width:0;flex:1;text-align:left">
+          <div class="id-card-label">Your ID</div>
+          <div class="id-card-value" id="meIdValue">—</div>
+        </div>
+        <span class="id-card-copy" id="idCardIcon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="9" y="9" width="13" height="13" rx="2"/>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+          </svg>
+        </span>
+      </button>
+    </div>
+
+    <div class="tools">
+      <label class="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="7"/>
+          <line x1="20" y1="20" x2="16.65" y2="16.65"/>
+        </svg>
+        <input id="searchInput" placeholder="Search friends" autocomplete="off">
+      </label>
+      <button class="icon-btn icon-btn--accent" id="addFriendBtn" title="Add friend" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="5" x2="12" y2="19"/>
+          <line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+      </button>
+    </div>
+
+    <ul class="friend-list" id="friendList"></ul>
+  </aside>
+
+  <!-- ========================= Chat ========================= -->
+  <main class="chat">
+
+    <header class="chat-header">
+      <button class="chat-back" id="backBtn" type="button" title="Back">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+      </button>
+      <div class="avatar" id="chatAvatar" style="display:none">—</div>
+      <div class="chat-head-info">
+        <div class="chat-head-name" id="chatName">No conversation selected</div>
+        <div class="chat-head-status" id="chatStatus">
+          <span class="dot" id="chatDot" style="display:none"></span>
+          <span id="chatStatusText">Choose a friend from the list</span>
+        </div>
+      </div>
+      <div class="chat-actions">
+        <button class="icon-btn" id="voiceCallBtn" title="Voice call" type="button" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+          </svg>
+        </button>
+        <button class="icon-btn" id="videoCallBtn" title="Video call" type="button" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M23 7l-7 5 7 5V7z"/>
+            <rect x="1" y="5" width="15" height="14" rx="2"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <div class="messages" id="messages"></div>
+
+    <form class="composer" id="composer" autocomplete="off">
+      <div class="composer-field">
+        <input id="messageInput" placeholder="Message" autocomplete="off">
+        <button class="composer-send" type="submit" id="sendBtn" disabled title="Send">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="19" x2="12" y2="5"/>
+            <polyline points="5 12 12 5 19 12"/>
+          </svg>
+        </button>
+      </div>
+    </form>
+
+  </main>
+</div>
+
+<!-- ========================= Welcome ========================= -->
+<div class="modal" id="welcomeModal">
+  <div class="modal-panel">
+    <div class="modal-title">Welcome to Relay</div>
+    <div class="modal-sub">Pick a display name. A unique ID will be created for you automatically — share it with friends so they can reach you.</div>
+
+    <div class="field">
+      <label for="nameInput">Display name</label>
+      <input id="nameInput" placeholder="e.g. Alex" maxlength="20" autocomplete="off">
+    </div>
+
+    <button class="btn btn-primary" id="nameSaveBtn" style="margin-top:20px">Continue</button>
+  </div>
+</div>
+
+<!-- ========================= Add friend ========================= -->
+<div class="modal" id="addModal">
+  <div class="modal-panel">
+    <div class="modal-title">Add a friend</div>
+    <div class="modal-sub">Paste their ID below. They can find it on the card under their name.</div>
+
+    <div class="field">
+      <label for="newFriendId">Friend's ID</label>
+      <input id="newFriendId" placeholder="e.g. relay-x7k2m9pq" maxlength="32" autocomplete="off" style="font-family: ui-monospace, monospace; letter-spacing: 0.02em;">
+    </div>
+
+    <div class="field">
+      <label for="newFriendName">Name <span style="color:var(--text-3); font-weight:400">(optional — auto-fills on first message)</span></label>
+      <input id="newFriendName" placeholder="e.g. Sam" maxlength="20" autocomplete="off">
+    </div>
+
+    <div class="btn-row" style="margin-top:20px">
+      <button class="btn btn-secondary" id="addCancelBtn" type="button">Cancel</button>
+      <button class="btn btn-primary" id="addSaveBtn" type="button">Add friend</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========================= Call ========================= -->
+<div class="modal" id="callModal">
+  <div class="modal-panel modal-panel--wide">
+
+    <div class="modal-title" id="callTitle">Voice call</div>
+    <div class="modal-sub" id="callSub">Connecting to your friend…</div>
+
+    <div class="call-stage" id="callStage">
+      <video id="remoteVideo" autoplay playsinline></video>
+      <video id="localVideo" class="local" autoplay playsinline muted></video>
+    </div>
+
+    <div class="call-status">
+      <span class="dot" id="callDot"></span>
+      <span id="statusText">Ready.</span>
+    </div>
+
+    <button class="btn btn-ghost" id="closeCallBtn" type="button" style="margin-top:14px">Hang up</button>
+  </div>
+</div>
+
+<!-- ========================= Incoming call ========================= -->
+<div class="modal" id="incomingModal">
+  <div class="modal-panel">
+    <div class="incoming">
+      <div class="incoming-avatar" id="incomingAvatar">—</div>
+      <div class="modal-title" id="incomingTitle">Incoming call</div>
+      <div class="modal-sub" id="incomingSub" style="text-align:center">—</div>
+    </div>
+
+    <div class="btn-row" style="margin-top:22px">
+      <button class="btn btn-secondary" id="declineCallBtn" type="button">Decline</button>
+      <button class="btn btn-primary" id="acceptCallBtn" type="button">Accept</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   Utilities
+   ============================================================ */
+const $ = (sel, root = document) => root.querySelector(sel);
+
+const escapeHTML = (str) =>
+  String(str).replace(/[&<>"']/g, (c) => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  })[c]);
+
+const formatTime = (ts) =>
+  new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+const formatDay = (ts) => {
+  const d = new Date(ts);
+  const now = new Date();
+  const y = new Date(); y.setDate(now.getDate() - 1);
+  const same = (a, b) =>
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate();
+  if (same(d, now)) return 'Today';
+  if (same(d, y))   return 'Yesterday';
+  return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+};
+
+const makePeerId = () => {
+  const chars = 'abcdefghijkmnpqrstuvwxyz23456789';
+  let s = '';
+  for (let i = 0; i < 8; i++) s += chars[Math.floor(Math.random() * chars.length)];
+  return 'relay-' + s;
+};
+
+const makeMsgId = () =>
+  Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+
+const initials = (name) => (name || '?').trim().charAt(0).toUpperCase() || '?';
+
+/* ============================================================
+   State
+   ============================================================ */
+const STORAGE_KEY = 'relay.v3';
+
+const state = {
+  me: null,
+  friends: [],
+  messages: {}
+};
+
+let activeId = null;
+
+const connections = new Map();   // peerId -> DataConnection
+let peer = null;
+let localStream = null;
+let activeCall = null;           // { friendId, call, isVideo }
+let pendingIncoming = null;      // { call, friendId, isVideo }
+
+/* ============================================================
+   Persistence
+   ============================================================ */
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === 'object') {
+      if (parsed.me) state.me = parsed.me;
+      if (Array.isArray(parsed.friends)) state.friends = parsed.friends;
+      if (parsed.messages && typeof parsed.messages === 'object') state.messages = parsed.messages;
+    }
+  } catch (e) { /* noop */ }
+}
+
+function persist() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+  catch (e) { /* noop */ }
+}
+
+loadState();
+
+/* ============================================================
+   Peer setup
+   ============================================================ */
+function setPeerStatus(kind, text) {
+  const dot = $('#meDot');
+  dot.className = 'dot' + (kind ? ' ' + kind : '');
+  $('#meStatusText').textContent = text;
+}
+
+function startPeer() {
+  if (!state.me) return;
+
+  setPeerStatus('warn', 'Connecting…');
+
+  // If a previous peer existed, tear it down
+  if (peer) {
+    try { peer.destroy(); } catch (e) {}
+    peer = null;
+  }
+
+  peer = new Peer(state.me.id, { debug: 1 });
+
+  peer.on('open', (id) => {
+    // In the unlikely event the server reassigned our id
+    if (id !== state.me.id) {
+      state.me.id = id;
+      persist();
+      renderMe();
+    }
+    setPeerStatus('ok', 'Online');
+    // Attempt to warm connections to all friends
+    state.friends.forEach((f) => warmConnection(f.id));
+  });
+
+  peer.on('connection', handleIncomingConnection);
+  peer.on('call', handleIncomingCall);
+
+  peer.on('disconnected', () => {
+    setPeerStatus('warn', 'Reconnecting…');
+    try { peer.reconnect(); } catch (e) {}
+  });
+
+  peer.on('close', () => {
+    setPeerStatus('', 'Offline');
+  });
+
+  peer.on('error', (err) => {
+    console.warn('Peer error:', err);
+    const type = err && err.type;
+    if (type === 'unavailable-id') {
+      // Regenerate id and try again
+      state.me.id = makePeerId();
+      persist();
+      renderMe();
+      setTimeout(startPeer, 200);
+      return;
+    }
+    if (type === 'peer-unavailable') {
+      // Target peer offline — non-fatal
+      return;
+    }
+    if (type === 'network' || type === 'server-error' || type === 'socket-error') {
+      setPeerStatus('err', 'Connection issue');
+      setTimeout(() => { try { peer.reconnect(); } catch (e) {} }, 3000);
+      return;
+    }
+    setPeerStatus('err', 'Error');
+  });
+}
+
+/* ============================================================
+   Data connections
+   ============================================================ */
+function warmConnection(friendId) {
+  if (!peer || !peer.open) return;
+  const existing = connections.get(friendId);
+  if (existing && existing.open) return;
+
+  try {
+    const conn = peer.connect(friendId, { reliable: true });
+    attachConnection(conn);
+  } catch (e) {
+    // ignore
+  }
+}
+
+function attachConnection(conn) {
+  const friendId = conn.peer;
+
+  conn.on('open', () => {
+    connections.set(friendId, conn);
+    conn.send({ type: 'hello', id: state.me.id, name: state.me.name });
+    renderFriendList();
+    if (activeId === friendId) renderChatHeader();
+  });
+
+  conn.on('data', (data) => handleData(friendId, data));
+
+  conn.on('close', () => {
+    if (connections.get(friendId) === conn) connections.delete(friendId);
+    renderFriendList();
+    if (activeId === friendId) renderChatHeader();
+  });
+
+  conn.on('error', () => {
+    if (connections.get(friendId) === conn) connections.delete(friendId);
+    renderFriendList();
+    if (activeId === friendId) renderChatHeader();
+  });
+}
+
+function handleIncomingConnection(conn) {
+  attachConnection(conn);
+}
+
+function ensureConnection(friendId) {
+  const existing = connections.get(friendId);
+  if (existing && existing.open) return Promise.resolve(existing);
+
+  return new Promise((resolve, reject) => {
+    if (!peer || !peer.open) {
+      reject(new Error('Not connected to network'));
+      return;
+    }
+
+    let settled = false;
+    const finish = (fn, arg) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      fn(arg);
+    };
+
+    const conn = peer.connect(friendId, { reliable: true });
+
+    const timer = setTimeout(() => {
+      try { conn.close(); } catch (e) {}
+      finish(reject, new Error('Friend is offline'));
+    }, 9000);
+
+    conn.on('open', () => {
+      connections.set(friendId, conn);
+      conn.send({ type: 'hello', id: state.me.id, name: state.me.name });
+      renderFriendList();
+      if (activeId === friendId) renderChatHeader();
+      finish(resolve, conn);
+    });
+
+    conn.on('data', (data) => handleData(friendId, data));
+    conn.on('close', () => {
+      if (connections.get(friendId) === conn) connections.delete(friendId);
+      renderFriendList();
+      if (activeId === friendId) renderChatHeader();
+    });
+    conn.on('error', (err) => {
+      if (connections.get(friendId) === conn) connections.delete(friendId);
+      renderFriendList();
+      finish(reject, err || new Error('Connection failed'));
+    });
+  });
+}
+
+/* ============================================================
+   Incoming data
+   ============================================================ */
+function handleData(fromId, data) {
+  if (!data || typeof data !== 'object' || !state.me) return;
+
+  if (data.type === 'hello') {
+    const friend = ensureFriend(fromId, data.name);
+    if (friend && data.name) friend.name = data.name;
+    persist();
+    renderFriendList();
+    if (activeId === fromId) renderChatHeader();
+    return;
+  }
+
+  if (data.type === 'message' && data.msg) {
+    const msg = data.msg;
+    if (msg.to !== state.me.id) return;
+
+    const friend = ensureFriend(msg.from, msg.fromName);
+    if (friend && msg.fromName) friend.name = msg.fromName;
+
+    (state.messages[msg.from] = state.messages[msg.from] || []).push({
+      id: msg.id,
+      from: msg.from,
+      fromName: msg.fromName,
+      to: msg.to,
+      text: msg.text,
+      ts: msg.ts,
+      status: 'sent'
+    });
+
+    persist();
+    renderFriendList();
+    if (activeId === msg.from) renderMessages();
+  }
+}
+
+function ensureFriend(id, nameHint) {
+  let friend = state.friends.find((f) => f.id === id);
+  if (!friend) {
+    friend = { id, name: nameHint || 'Unknown' };
+    state.friends.push(friend);
+    if (!state.messages[id]) state.messages[id] = [];
+  }
+  return friend;
+}
+
+/* ============================================================
+   Sending messages
+   ============================================================ */
+async function sendMessage(friendId, text) {
+  const trimmed = text.trim();
+  if (!trimmed || !state.me) return;
+
+  const msg = {
+    id: makeMsgId(),
+    from: state.me.id,
+    fromName: state.me.name,
+    to: friendId,
+    text: trimmed,
+    ts: Date.now(),
+    status: 'sending'
+  };
+
+  (state.messages[friendId] = state.messages[friendId] || []).push(msg);
+  persist();
+  renderMessages();
+  renderFriendList();
+
+  try {
+    const conn = await ensureConnection(friendId);
+    conn.send({
+      type: 'message',
+      msg: {
+        id: msg.id,
+        from: msg.from,
+        fromName: msg.fromName,
+        to: msg.to,
+        text: msg.text,
+        ts: msg.ts
+      }
+    });
+    msg.status = 'sent';
+  } catch (e) {
+    msg.status = 'failed';
+  }
+  persist();
+  renderMessages();
+  renderFriendList();
+}
+
+/* ============================================================
+   Calls
+   ============================================================ */
+function setCallStatus(kind, text) {
+  const dot = $('#callDot');
+  dot.className = 'dot' + (kind ? ' ' + kind : '');
+  $('#statusText').textContent = text;
+}
+
+async function acquireMedia(video) {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    throw new Error('Camera/microphone not supported');
+  }
+  return navigator.mediaDevices.getUserMedia({ audio: true, video: !!video });
+}
+
+async function startOutgoingCall(friendId, isVideo) {
+  if (!peer || !peer.open) {
+    alert('Not connected yet. Try again in a moment.');
+    return;
+  }
+
+  const friend = state.friends.find((f) => f.id === friendId);
+  $('#callTitle').textContent = isVideo ? 'Video call' : 'Voice call';
+  $('#callSub').textContent = 'Calling ' + (friend ? friend.name : friendId) + '…';
+  $('#callStage').classList.remove('on');
+  setCallStatus('warn', 'Calling…');
+  $('#callModal').classList.add('open');
+
+  try {
+    localStream = await acquireMedia(isVideo);
+  } catch (e) {
+    setCallStatus('err', 'Could not access microphone/camera.');
+    return;
+  }
+
+  $('#callStage').classList.add('on');
+  $('#localVideo').srcObject = localStream;
+
+  let call;
+  try {
+    call = peer.call(friendId, localStream, { metadata: { isVideo: !!isVideo } });
+  } catch (e) {
+    setCallStatus('err', 'Could not start call.');
+    return;
+  }
+
+  if (!call) {
+    setCallStatus('err', 'Friend is offline.');
+    return;
+  }
+
+  activeCall = { friendId, call, isVideo: !!isVideo, outgoing: true };
+
+  call.on('stream', (remoteStream) => {
+    $('#remoteVideo').srcObject = remoteStream;
+    setCallStatus('ok', 'Connected');
+  });
+
+  call.on('close', () => endCall());
+  call.on('error', (e) => {
+    console.warn('Call error:', e);
+    setCallStatus('err', 'Call failed.');
+    setTimeout(endCall, 1200);
+  });
+}
+
+function handleIncomingCall(call) {
+  const friendId = call.peer;
+  const isVideo = !!(call.metadata && call.metadata.isVideo);
+  const friend = state.friends.find((f) => f.id === friendId);
+  const name = friend ? friend.name : friendId;
+
+  pendingIncoming = { call, friendId, isVideo };
+
+  $('#incomingAvatar').textContent = initials(name);
+  $('#incomingTitle').textContent = isVideo ? 'Incoming video call' : 'Incoming voice call';
+  $('#incomingSub').textContent = name + ' is calling you';
+  $('#incomingModal').classList.add('open');
+}
+
+async function acceptIncoming() {
+  if (!pendingIncoming) return;
+  const { call, friendId, isVideo } = pendingIncoming;
+  pendingIncoming = null;
+  $('#incomingModal').classList.remove('open');
+
+  $('#callTitle').textContent = isVideo ? 'Video call' : 'Voice call';
+  const friend = state.friends.find((f) => f.id === friendId);
+  $('#callSub').textContent = 'In call with ' + (friend ? friend.name : friendId);
+  $('#callStage').classList.remove('on');
+  setCallStatus('warn', 'Connecting…');
+  $('#callModal').classList.add('open');
+
+  try {
+    localStream = await acquireMedia(isVideo);
+  } catch (e) {
+    setCallStatus('err', 'Could not access microphone/camera.');
+    try { call.close(); } catch (e2) {}
+    return;
+  }
+
+  $('#callStage').classList.add('on');
+  $('#localVideo').srcObject = localStream;
+
+  try {
+    call.answer(localStream);
+  } catch (e) {
+    setCallStatus('err', 'Could not answer.');
+    return;
+  }
+
+  activeCall = { friendId, call, isVideo, outgoing: false };
+
+  call.on('stream', (remoteStream) => {
+    $('#remoteVideo').srcObject = remoteStream;
+    setCallStatus('ok', 'Connected');
+  });
+
+  call.on('close', () => endCall());
+  call.on('error', () => {
+    setCallStatus('err', 'Call failed.');
+    setTimeout(endCall, 1200);
+  });
+}
+
+function declineIncoming() {
+  if (!pendingIncoming) return;
+  try { pendingIncoming.call.close(); } catch (e) {}
+  pendingIncoming = null;
+  $('#incomingModal').classList.remove('open');
+}
+
+function endCall() {
+  if (activeCall) {
+    try { activeCall.call.close(); } catch (e) {}
+    activeCall = null;
+  }
+  if (localStream) {
+    localStream.getTracks().forEach((t) => t.stop());
+    localStream = null;
+  }
+  $('#localVideo').srcObject = null;
+  $('#remoteVideo').srcObject = null;
+  $('#callStage').classList.remove('on');
+  setCallStatus('', 'Ready.');
+  $('#callModal').classList.remove('open');
+}
+
+/* ============================================================
+   Rendering
+   ============================================================ */
+function renderMe() {
+  if (!state.me) return;
+  $('#meName').textContent = state.me.name;
+  $('#meAvatar').textContent = initials(state.me.name);
+  $('#meIdValue').textContent = state.me.id;
+}
+
+function lastMessage(id) {
+  const list = state.messages[id];
+  return list && list.length ? list[list.length - 1] : null;
+}
+
+function isOnline(friendId) {
+  const conn = connections.get(friendId);
+  return !!(conn && conn.open);
+}
+
+function renderFriendList() {
+  const query = $('#searchInput').value.trim().toLowerCase();
+  const list = $('#friendList');
+  list.innerHTML = '';
+
+  const friends = state.friends.filter((f) => f.name.toLowerCase().includes(query));
+
+  if (!friends.length) {
+    list.innerHTML = query
+      ? '<li class="list-empty">No friends match that search.</li>'
+      : '<li class="list-empty"><strong>No friends yet</strong>Tap the plus button to add someone using their ID.</li>';
+    return;
+  }
+
+  friends.forEach((friend) => {
+    const last = lastMessage(friend.id);
+    const online = isOnline(friend.id);
+
+    const li = document.createElement('li');
+    li.className = 'friend' + (friend.id === activeId ? ' active' : '');
+    li.dataset.id = friend.id;
+
+    li.innerHTML =
+      '<div class="friend-avatar">' +
+        '<div class="avatar">' + escapeHTML(initials(friend.name)) + '</div>' +
+        '<span class="presence' + (online ? ' online' : '') + '"></span>' +
+      '</div>' +
+      '<div class="friend-body">' +
+        '<div class="friend-name">' + escapeHTML(friend.name) + '</div>' +
+        '<div class="friend-preview">' +
+          (last ? escapeHTML(last.text) : 'No messages yet') +
+        '</div>' +
+      '</div>' +
+      (last ? '<div class="friend-time">' + formatTime(last.ts) + '</div>' : '');
+
+    li.addEventListener('click', () => openChat(friend.id));
+    list.appendChild(li);
+  });
+}
+
+function renderMessages() {
+  const box = $('#messages');
+  box.innerHTML = '';
+
+  if (!activeId || !state.me) {
+    box.innerHTML =
+      '<div class="empty-state">' +
+        '<div class="empty-mark">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">' +
+            '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>' +
+          '</svg>' +
+        '</div>' +
+        '<div class="empty-title">Your messages</div>' +
+        '<div class="empty-sub">Select a conversation from the sidebar to start chatting.</div>' +
+      '</div>';
+    return;
+  }
+
+  const list = state.messages[activeId] || [];
+
+  if (!list.length) {
+    box.innerHTML =
+      '<div class="messages-empty">' +
+        '<div>No messages yet.</div>' +
+        '<div style="opacity:0.7">Say hello below.</div>' +
+      '</div>';
+    return;
+  }
+
+  let lastDay = null;
+  let lastSender = null;
+
+  list.forEach((msg) => {
+    const day = new Date(msg.ts).toDateString();
+    if (day !== lastDay) {
+      const div = document.createElement('div');
+      div.className = 'day-divider';
+      div.innerHTML = '<span>' + formatDay(msg.ts) + '</span>';
+      box.appendChild(div);
+      lastDay = day;
+      lastSender = null;
+    }
+
+    const mine = msg.from === state.me.id;
+    const isFirst = msg.from !== lastSender;
+    lastSender = msg.from;
+
+    const timeHTML = formatTime(msg.ts) +
+      (mine && msg.status === 'failed' ? ' · <span class="fail">Not delivered</span>' : '');
+
+    const row = document.createElement('div');
+    row.className = 'message' + (mine ? ' mine' : '') + (isFirst ? ' first' : '');
+    row.innerHTML =
+      '<div class="bubble' + (mine ? ' mine' : '') + '">' +
+        escapeHTML(msg.text) +
+        '<div class="bubble-time">' + timeHTML + '</div>' +
+      '</div>';
+    box.appendChild(row);
+  });
+
+  box.scrollTop = box.scrollHeight;
+}
+
+function renderChatHeader() {
+  const friend = state.friends.find((f) => f.id === activeId);
+  const avatarEl = $('#chatAvatar');
+  const voiceBtn = $('#voiceCallBtn');
+  const videoBtn = $('#videoCallBtn');
+  const dot = $('#chatDot');
+
+  if (!friend) {
+    avatarEl.style.display = 'none';
+    dot.style.display = 'none';
+    $('#chatName').textContent = 'No conversation selected';
+    $('#chatStatusText').textContent = 'Choose a friend from the list';
+    voiceBtn.disabled = true;
+    videoBtn.disabled = true;
+    return;
+  }
+
+  avatarEl.style.display = 'grid';
+  avatarEl.textContent = initials(friend.name);
+  $('#chatName').textContent = friend.name;
+
+  const online = isOnline(friend.id);
+  dot.style.display = 'inline-block';
+  dot.className = 'dot' + (online ? ' ok' : '');
+  $('#chatStatusText').textContent = online ? 'Online' : 'Offline';
+
+  voiceBtn.disabled = false;
+  videoBtn.disabled = false;
+}
+
+function renderAll() {
+  renderMe();
+  renderFriendList();
+  renderChatHeader();
+  renderMessages();
+}
+
+/* ============================================================
+   Navigation
+   ============================================================ */
+function openChat(id) {
+  activeId = id;
+  document.body.classList.add('chat-open');
+  renderAll();
+  // Ping the connection so presence updates
+  warmConnection(id);
+  setTimeout(() => $('#messageInput').focus(), 60);
+}
+
+function closeChat() {
+  activeId = null;
+  document.body.classList.remove('chat-open');
+  renderAll();
+}
+
+function updateSendButton() {
+  $('#sendBtn').disabled = !activeId || !$('#messageInput').value.trim();
+}
+
+/* ============================================================
+   Events
+   ============================================================ */
+$('#nameSaveBtn').addEventListener('click', () => {
+  const name = $('#nameInput').value.trim();
+  if (!name) { $('#nameInput').focus(); return; }
+  state.me = { name, id: makePeerId() };
+  persist();
+  $('#welcomeModal').classList.remove('open');
+  renderMe();
+  startPeer();
+});
+
+$('#nameInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') $('#nameSaveBtn').click();
+});
+
+$('#idCard').addEventListener('click', async () => {
+  if (!state.me) return;
+  const label = $('#meIdValue');
+  try {
+    await navigator.clipboard.writeText(state.me.id);
+    const original = label.textContent;
+    label.textContent = 'Copied to clipboard';
+    setTimeout(() => { label.textContent = original; }, 1400);
+  } catch (e) {
+    // fallback
+    const ta = document.createElement('textarea');
+    ta.value = state.me.id;
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); } catch (e2) {}
+    document.body.removeChild(ta);
+    const original = label.textContent;
+    label.textContent = 'Copied to clipboard';
+    setTimeout(() => { label.textContent = original; }, 1400);
+  }
+});
+
+$('#addFriendBtn').addEventListener('click', () => {
+  $('#newFriendId').value = '';
+  $('#newFriendName').value = '';
+  $('#addModal').classList.add('open');
+  setTimeout(() => $('#newFriendId').focus(), 50);
+});
+
+$('#addCancelBtn').addEventListener('click', () => {
+  $('#addModal').classList.remove('open');
+});
+
+$('#addSaveBtn').addEventListener('click', () => {
+  const id = $('#newFriendId').value.trim();
+  const name = $('#newFriendName').value.trim();
+
+  if (!id) { $('#newFriendId').focus(); return; }
+  if (id === state.me.id) {
+    alert("That's your own ID.");
+    return;
+  }
+  if (state.friends.some((f) => f.id === id)) {
+    alert('That friend is already in your list.');
+    return;
+  }
+
+  state.friends.push({ id, name: name || 'Unknown' });
+  state.messages[id] = state.messages[id] || [];
+  persist();
+  $('#addModal').classList.remove('open');
+  renderAll();
+  openChat(id);
+  // Try to greet them right away
+  warmConnection(id);
+});
+
+$('#newFriendName').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') $('#addSaveBtn').click();
+});
+$('#newFriendId').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') $('#addSaveBtn').click();
+});
+
+$('#searchInput').addEventListener('input', renderFriendList);
+
+$('#backBtn').addEventListener('click', closeChat);
+
+$('#composer').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const input = $('#messageInput');
+  const text = input.value;
+  input.value = '';
+  updateSendButton();
+  if (activeId) sendMessage(activeId, text);
+  input.focus();
+});
+
+$('#messageInput').addEventListener('input', updateSendButton);
+
+$('#voiceCallBtn').addEventListener('click', () => {
+  if (activeId) startOutgoingCall(activeId, false);
+});
+$('#videoCallBtn').addEventListener('click', () => {
+  if (activeId) startOutgoingCall(activeId, true);
+});
+
+$('#closeCallBtn').addEventListener('click', endCall);
+
+$('#acceptCallBtn').addEventListener('click', acceptIncoming);
+$('#declineCallBtn').addEventListener('click', declineIncoming);
+
+/* Backdrop closing */
+document.querySelectorAll('.modal').forEach((modal) => {
+  modal.addEventListener('click', (e) => {
+    if (e.target !== modal) return;
+    if (modal.id === 'callModal') { endCall(); return; }
+    if (modal.id === 'incomingModal') { declineIncoming(); return; }
+    // welcome modal is mandatory
+    if (modal.id === 'welcomeModal') return;
+    modal.classList.remove('open');
+  });
+});
+
+/* Escape closes things */
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  document.querySelectorAll('.modal.open').forEach((m) => {
+    if (m.id === 'welcomeModal') return;
+    if (m.id === 'callModal') { endCall(); return; }
+    if (m.id === 'incomingModal') { declineIncoming(); return; }
+    m.classList.remove('open');
+  });
+});
+
+/* ============================================================
+   Boot
+   ============================================================ */
+renderAll();
+
+if (!state.me) {
+  $('#welcomeModal').classList.add('open');
+  setTimeout(() => $('#nameInput').focus(), 120);
+} else {
+  startPeer();
+}
+
+/* Refresh presence indicators periodically */
+setInterval(() => {
+  renderFriendList();
+  if (activeId) renderChatHeader();
+}, 5000);
+</script>
+</body>
+</html>
